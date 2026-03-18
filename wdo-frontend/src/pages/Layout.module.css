@@ -1,0 +1,11 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main {
+  flex: 1;
+  margin-left: var(--nav-width);
+  padding: 32px;
+  max-width: calc(100vw - var(--nav-width));
+}
