@@ -3,8 +3,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import json
+import os
 
-DATABASE_URL = "postgresql://postgres:ikpostgres*@localhost:5432/water_optimizer"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:ikpostgres*@localhost:5432/water_optimizer")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
