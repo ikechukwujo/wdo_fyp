@@ -9,6 +9,7 @@ export const useStore = create((set, get) => ({
   // ── Optimization state ────────────────────────────────────────────────────
   jobId:      null,
   jobStatus:  null,
+  progress:   0,
   results:    null,
   baseline:   null,
   error:      null,
@@ -30,9 +31,10 @@ export const useStore = create((set, get) => ({
   setParam:        (k, v) => set(s => ({ params: { ...s.params, [k]: v } })),
   setJobId:        (id) => set({ jobId: id }),
   setJobStatus:    (st) => set({ jobStatus: st }),
+  setProgress:     (p)  => set({ progress: p }),
   setResults:      (r)  => set({ results: r }),
   setBaseline:     (b)  => set({ baseline: b }),
   setError:        (e)  => set({ error: e }),
 
-  reset: () => set({ jobId: null, jobStatus: 'idle', results: null, error: null }),
+  reset: () => set({ jobId: null, jobStatus: 'idle', progress: 0, results: null, error: null }),
 }))
