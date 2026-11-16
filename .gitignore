@@ -1,5 +1,6 @@
 # Python
 venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -7,6 +8,8 @@ __pycache__/
 .Python
 env/
 .env
+.matplotlib-cache/
+.npm-cache/
 
 # EPANET Diagnostics/Outputs
 *.log
