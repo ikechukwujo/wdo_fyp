@@ -3,12 +3,12 @@ import { api } from '../api'
 import { useStore } from '../store/useStore'
 import styles from './NetworkViewer.module.css'
 
-// ── Colour scale: pressure → colour ──────────────────────────────────────────
+// -- Colour scale: pressure -> colour ------------------------------------------
 function pressureColor(pressure, minP, maxP, belowMin) {
   if (belowMin) return '#ff4d6a'         // red  = below threshold (deficit)
   if (maxP === minP) return '#00d4ff'
   const t = Math.max(0, Math.min(1, (pressure - minP) / (maxP - minP)))
-  // Cool blue (low) → cyan (mid) → green (high)
+  // Cool blue (low) -> cyan (mid) -> green (high)
   if (t < 0.5) {
     const s = t / 0.5
     return `rgb(${Math.round(255 * (1-s))}, ${Math.round(212 + 43*s)}, 255)`
@@ -18,13 +18,19 @@ function pressureColor(pressure, minP, maxP, belowMin) {
   }
 }
 
-// ── Flow width scale ──────────────────────────────────────────────────────────
+// -- Flow width scale ----------------------------------------------------------
 function flowWidth(flow, maxFlow) {
   if (!maxFlow || maxFlow === 0) return 2
   return Math.max(1.5, Math.min(6, (flow / maxFlow) * 6))
 }
 
-// ── Node radius by type ───────────────────────────────────────────────────────
+function fmtDiameter(diameter) {
+  if (!diameter || Number.isNaN(diameter)) return '-'
+  if (diameter >= 10) return diameter.toFixed(0)
+  return diameter.toFixed(2)
+}
+
+// -- Node radius by type -------------------------------------------------------
 function nodeRadius(type) {
   if (type === 'RESERVOIR') return 14
   if (type === 'TANK')      return 11
@@ -32,7 +38,7 @@ function nodeRadius(type) {
   return 7
 }
 
-// ── Normalise coordinates to fit SVG canvas ───────────────────────────────────
+// -- Normalise coordinates to fit SVG canvas -----------------------------------
 function normaliseCoords(nodes, width, height, padding = 60) {
   if (!nodes.length) return nodes
   const xs = nodes.map(n => n.x).filter(Boolean)
@@ -54,7 +60,7 @@ function normaliseCoords(nodes, width, height, padding = 60) {
   }))
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export default function NetworkViewer() {
   const { networkFile, results } = useStore()
@@ -72,7 +78,7 @@ export default function NetworkViewer() {
 
   const W = 680, H = 520
 
-  // ── Load topologies ─────────────────────────────────────────────────────
+  // -- Load topologies -----------------------------------------------------
   useEffect(() => {
     setLoading(true)
     setError(null)
@@ -101,7 +107,7 @@ export default function NetworkViewer() {
       })
   }, [networkFile, results])
 
-  // ── Zoom / pan handlers ─────────────────────────────────────────────────
+  // -- Zoom / pan handlers -------------------------------------------------
   const handleWheel = useCallback((e) => {
     e.preventDefault()
     setZoom(z => Math.max(0.4, Math.min(4, z - e.deltaY * 0.001)))
@@ -119,11 +125,10 @@ export default function NetworkViewer() {
 
   const resetView = () => { setZoom(1); setPan({ x: 0, y: 0 }) }
 
-  // ── Render one SVG network ──────────────────────────────────────────────
+  // -- Render one SVG network ----------------------------------------------
   const renderNetwork = (topo, label, accentColor) => {
     if (!topo) return null
 
-    const nodeMap  = Object.fromEntries(topo.nodes.map(n => [n.id, n]))
     const normNodes = normaliseCoords(topo.nodes, W, H)
     const normMap  = Object.fromEntries(normNodes.map(n => [n.id, n]))
 
@@ -142,7 +147,7 @@ export default function NetworkViewer() {
 
         {/* Metrics strip */}
         <div className={styles.metricStrip}>
-          <MetricChip label="Energy" value={`₦${(topo.energy_cost ?? 0).toFixed(0)}`} color={accentColor} />
+          <MetricChip label="Energy" value={`NGN${(topo.energy_cost ?? 0).toFixed(0)}`} color={accentColor} />
           <MetricChip label="Pressure Var" value={(topo.pressure_variance ?? 0).toFixed(3)} color={accentColor} />
           <MetricChip label="Deficit" value={(topo.pressure_deficit ?? 0).toFixed(2)} color={accentColor} />
           <MetricChip label="Avg P" value={`${(topo.avg_pressure ?? 0).toFixed(1)}m`} color={accentColor} />
@@ -176,14 +181,15 @@ export default function NetworkViewer() {
           <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}
              style={{ transformOrigin: `${W/2}px ${H/2}px` }}>
 
-            {/* ── Links ── */}
+            {/* -- Links -- */}
             {topo.links.map(link => {
               const src = normMap[link.source]
               const tgt = normMap[link.target]
               if (!src?.sx || !tgt?.sx) return null
 
               const isPump  = link.type === 'PUMP'
-              const isValve = ['PRV','PSV','FCV','TCV','GPV','PBV'].includes(link.type)
+              const isValve = link.type === 'VALVE' || ['PRV','PSV','FCV','TCV','GPV','PBV'].includes(link.type)
+              const isPipe = link.type === 'PIPE'
               const lw = flowWidth(link.flow ?? 0, maxFlow)
 
               // Color by type
@@ -207,6 +213,23 @@ export default function NetworkViewer() {
                   {(link.flow ?? 0) > 0.01 && (
                     <circle cx={mx} cy={my} r={2} fill={strokeColor} opacity={0.6} />
                   )}
+                  {isPipe && hovered === `link-${link.id}` && (
+                    <g className={styles.linkLabel}>
+                      <rect
+                        x={mx + 5}
+                        y={my + 5}
+                        width={74}
+                        height={27}
+                        rx={4}
+                      />
+                      <text x={mx + 10} y={my + 16}>
+                        D {fmtDiameter(link.diameter)}
+                      </text>
+                      <text x={mx + 10} y={my + 27}>
+                        W {lw.toFixed(1)}px
+                      </text>
+                    </g>
+                  )}
                   {/* Velocity label on hover - shown for all links */}
                   {hovered === `link-${link.id}` && (
                     <text x={mx + 4} y={my - 4}
@@ -226,7 +249,7 @@ export default function NetworkViewer() {
               )
             })}
 
-            {/* ── Nodes ── */}
+            {/* -- Nodes -- */}
             {normNodes.map(node => {
               const isHovered = hovered === `node-${node.id}`
               const belowMin  = (node.pressure ?? 0) < minThreshold
@@ -286,17 +309,17 @@ export default function NetworkViewer() {
                       />
                       <text x={node.sx + r + 10} y={node.sy - 22}
                         fontSize="9" fontFamily="var(--font-mono)" fill="rgba(255,255,255,0.5)">
-                        {node.name} · {node.type}
+                        {node.name} / {node.type}
                       </text>
                       <text x={node.sx + r + 10} y={node.sy - 10}
                         fontSize="10" fontFamily="var(--font-mono)"
                         fill={belowMin ? '#ff4d6a' : '#00d4ff'} fontWeight="500">
                         P: {(node.pressure ?? 0).toFixed(2)} m
-                        {belowMin ? ' ⚠' : ''}
+                        {belowMin ? ' !' : ''}
                       </text>
                       <text x={node.sx + r + 10} y={node.sy + 2}
                         fontSize="9" fontFamily="var(--font-mono)" fill="rgba(255,255,255,0.4)">
-                        Elev: {node.elevation?.toFixed(1) ?? '—'} m
+                        Elev: {node.elevation?.toFixed(1) ?? '-'} m
                       </text>
                     </g>
                   )}
@@ -312,17 +335,15 @@ export default function NetworkViewer() {
     )
   }
 
-  const knee = results?.knee_solution
-
   return (
     <div className={styles.container}>
-      {/* ── Toolbar ── */}
+      {/* -- Toolbar -- */}
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
           <span className={styles.toolbarTitle}>Network Visualizer</span>
           {baselineTopo && (
             <span className={styles.networkInfo}>
-              {baselineTopo.num_nodes} nodes · {baselineTopo.num_links} links
+              {baselineTopo.num_nodes} nodes / {baselineTopo.num_links} links
             </span>
           )}
         </div>
@@ -334,19 +355,19 @@ export default function NetworkViewer() {
               onClick={() => setViewMode(m)}
               className={`${styles.toggleBtn} ${viewMode === m ? styles.activeToggle : ''}`}
             >
-              {m === 'split' ? '⊟ Split' : m === 'before' ? '← Before' : 'After →'}
+              {m === 'split' ? 'Split' : m === 'before' ? '<- Before' : 'After ->'}
             </button>
           ))}
         </div>
 
         <div className={styles.toolbarRight}>
-          <button className={styles.iconBtn} onClick={resetView} title="Reset view">⊙</button>
+          <button className={styles.iconBtn} onClick={resetView} title="Reset view">Reset</button>
           <button className={styles.iconBtn} onClick={() => setZoom(z => Math.min(4, z + 0.2))} title="Zoom in">+</button>
-          <button className={styles.iconBtn} onClick={() => setZoom(z => Math.max(0.4, z - 0.2))} title="Zoom out">−</button>
+          <button className={styles.iconBtn} onClick={() => setZoom(z => Math.max(0.4, z - 0.2))} title="Zoom out">-</button>
         </div>
       </div>
 
-      {/* ── Legend ── */}
+      {/* -- Legend -- */}
       <div className={styles.legend}>
         <LegendItem color="#ff4d6a"            label="Below min pressure (deficit)" />
         <LegendItem color="rgb(0,212,255)"     label="Low pressure" />
@@ -356,7 +377,7 @@ export default function NetworkViewer() {
         <LegendItem color="rgba(255,255,255,0.18)" label="Pipe" dash />
       </div>
 
-      {/* ── Main canvas ── */}
+      {/* -- Main canvas -- */}
       {loading && (
         <div className={styles.loadingOverlay}>
           <div className={styles.spinner} />
@@ -366,7 +387,7 @@ export default function NetworkViewer() {
 
       {error && (
         <div className={styles.errorBanner}>
-          ⚠ {error}
+          ! {error}
         </div>
       )}
 
@@ -380,7 +401,7 @@ export default function NetworkViewer() {
               ? renderNetwork(optimizedTopo, 'GA Optimized (Knee Point)', '#00e5a0')
               : (
                 <div className={styles.noOptimized}>
-                  <div className={styles.noOptimizedIcon}>⟳</div>
+                  <div className={styles.noOptimizedIcon}>...</div>
                   <p>Run optimization to see the improved network</p>
                   <p className={styles.noOptimizedSub}>
                     The optimized view will show pressure changes, reduced deficits,
@@ -395,7 +416,7 @@ export default function NetworkViewer() {
   )
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// -- Sub-components ------------------------------------------------------------
 
 function MetricChip({ label, value, color }) {
   return (

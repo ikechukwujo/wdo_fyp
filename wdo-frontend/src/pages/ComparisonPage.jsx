@@ -13,13 +13,13 @@ export default function ComparisonPage() {
   const metrics = (baseline && knee) ? [
     {
       name: 'Energy Cost',
-      unit: '₦/day',
+      unit: 'NGN/day',
       Baseline: parseFloat(baseline.energy_cost?.toFixed(2) ?? 0),
       Optimized: parseFloat(knee.f1_energy_cost?.toFixed(2) ?? 0),
     },
     {
       name: 'Pressure Variance',
-      unit: 'm²',
+      unit: 'm^2',
       Baseline: parseFloat(baseline.pressure_variance?.toFixed(4) ?? 0),
       Optimized: parseFloat(knee.f2_pressure_variance?.toFixed(4) ?? 0),
     },

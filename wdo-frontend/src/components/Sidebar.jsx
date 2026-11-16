@@ -22,7 +22,7 @@ export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logo}>
-        <div className={styles.logoIcon}>💧</div>
+        <div className={styles.logoIcon}></div>
         <div>
           <div className={styles.logoTitle}>WDO</div>
           <div className={styles.logoSub}>Optimizer v1.0</div>
@@ -63,7 +63,7 @@ export default function Sidebar() {
       </nav>
 
       <div className={styles.footer}>
-        <div className={styles.footerText}>Covenant University · CSC FYP</div>
+        <div className={styles.footerText}>Covenant University / CSC FYP</div>
         <div className={styles.footerText}>22CG031893</div>
       </div>
     </aside>

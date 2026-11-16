@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useStore } from '../store/useStore'
 import { useOptimization } from '../hooks/useOptimization'
-import { Play, Loader, Upload, CheckCircle, Network } from 'lucide-react'
+import { Play, Loader, Upload, CheckCircle, Network, RotateCcw } from 'lucide-react'
 import { api } from '../api'
 import Card from './Card'
 import styles from './ConfigPanel.module.css'
@@ -15,10 +15,10 @@ const SLIDERS = [
 ]
 
 export default function ConfigPanel() {
-  const { params, setParam, networkFile, networkStats,
+  const { params, setParam, networkStats,
           uploadedName, setNetworkFile, setNetworkStats,
-          setUploadedName, setBaseline } = useStore()
-  const { startOptimization, isRunning } = useOptimization()
+          setUploadedName, setBaseline, clearResults, resetToDemo } = useStore()
+  const { startOptimization, isRunning, progress } = useOptimization()
   const fileRef   = useRef()
   const [uploading, setUploading] = useState(false)
   const [uploadErr, setUploadErr] = useState(null)
@@ -33,22 +33,29 @@ export default function ConfigPanel() {
       setNetworkFile(res.network_file)
       setNetworkStats(res.stats)
       setUploadedName(res.filename)
+      clearResults()
       // Reload baseline for new network
       const bl = await api.getBaseline(res.network_file)
       setBaseline(bl)
     } catch (err) {
-      setUploadErr(err.response?.data?.detail || 'Upload failed')
+      setUploadErr(err.response?.data?.detail || err.message || 'Upload failed')
     } finally {
       setUploading(false)
     }
   }
 
+  const handleDemoReset = () => {
+    resetToDemo()
+    setUploadErr(null)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
   return (
     <Card>
       <h2 className={styles.title}>Configuration</h2>
-      <p className={styles.subtitle}>NSGA-II · 3 Objectives</p>
+      <p className={styles.subtitle}>NSGA-II / 3 Objectives</p>
 
-      {/* ── Network File ── */}
+      {/* Network File */}
       <div className={styles.section}>
         <div className={styles.sectionLabel}>
           <Network size={12} />
@@ -91,12 +98,22 @@ export default function ConfigPanel() {
             Using default: <code>nigeria_demo.inp</code>
           </p>
         )}
+
+        <button
+          type="button"
+          onClick={handleDemoReset}
+          disabled={isRunning || uploading}
+          className={styles.resetBtn}
+        >
+          <RotateCcw size={13} />
+          Use demo network
+        </button>
       </div>
 
-      {/* ── GA Sliders ── */}
+      {/* GA Sliders */}
       <div className={styles.section}>
         <div className={styles.sectionLabel}>
-          <span>⚙</span> GA Parameters
+          <span>Settings</span> GA Parameters
         </div>
         <div className={styles.sliders}>
           {SLIDERS.map(({ key, label, min, max, step, unit }) => (
@@ -119,6 +136,18 @@ export default function ConfigPanel() {
           ))}
         </div>
       </div>
+
+      {isRunning && (
+        <div className={styles.progressContainer}>
+          <div className={styles.progressLabel}>
+            <span>Optimization Progress</span>
+            <span>{progress || 0}%</span>
+          </div>
+          <div className={styles.progressBarBg}>
+            <div className={styles.progressBarFill} style={{ width: `${progress || 0}%` }} />
+          </div>
+        </div>
+      )}
 
       <button
         onClick={startOptimization}

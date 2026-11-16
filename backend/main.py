@@ -29,6 +29,7 @@ _sim_lock = threading.Lock()
 
 def _get_sim(network_file: str) -> EPANETSimulator:
     """Return a cached EPANETSimulator for this network file (Thread-safe)."""
+    network_file = (network_file or EPANETSimulator.DEFAULT_NETWORK).replace("\\", "/")
     with _sim_lock:
         if network_file not in _sim_cache:
             _sim_cache[network_file] = EPANETSimulator(network_file)
@@ -50,14 +51,14 @@ class ChromosomeRequest(BaseModel):
     chromosome: List[float]
 
 
-# ── Root ──────────────────────────────────────────────────────────────────────
+# -- Root ----------------------------------------------------------------------
 
 @app.get("/")
 def root():
     return {"message": "Water Distribution Optimizer API is running"}
 
 
-# ── Optimization ──────────────────────────────────────────────────────────────
+# -- Optimization --------------------------------------------------------------
 
 @app.post("/api/optimize")
 async def start_optimization(
@@ -83,7 +84,7 @@ def run_optimization_job(job_id: str, request: OptimizationRequest):
 
         optimizer = NSGAII_WaterOptimizer(
             network_file=request.network_file,
-            params=request.dict()
+            params=request.model_dump()
         )
         results = optimizer.run(progress_callback=update_progress)
 
@@ -124,7 +125,7 @@ def get_results(job_id: str):
     return job
 
 
-# ── Network ───────────────────────────────────────────────────────────────────
+# -- Network -------------------------------------------------------------------
 
 @app.post("/api/network/upload")
 async def upload_network(file: UploadFile = File(...)):
@@ -132,12 +133,24 @@ async def upload_network(file: UploadFile = File(...)):
     if not file.filename.endswith(".inp"):
         raise HTTPException(status_code=400, detail="Only .inp files are accepted")
     dest = os.path.join("networks", file.filename)
+    network_file = dest.replace("\\", "/")
     with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
     # Clear cache so the new file gets a fresh simulator
     with _sim_lock:
-        _sim_cache.pop(dest, None)
-    return {"network_file": dest, "filename": file.filename}
+        _sim_cache.pop(network_file, None)
+    sim = _get_sim(network_file)
+    topo = sim.get_network_topology()
+    return {
+        "network_file": network_file,
+        "filename": file.filename,
+        "stats": {
+            "num_nodes": topo["num_nodes"],
+            "num_links": topo["num_links"],
+            "num_pumps": topo["num_pumps"],
+            "num_valves": topo["num_valves"],
+        },
+    }
 
 
 @app.get("/api/network/topology")

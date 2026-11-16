@@ -141,6 +141,23 @@
   user-select: none;
 }
 
+.linkLabel {
+  pointer-events: none;
+}
+
+.linkLabel rect {
+  fill: rgba(10,14,26,0.78);
+  stroke: rgba(255,255,255,0.14);
+  stroke-width: 0.75;
+}
+
+.linkLabel text {
+  fill: rgba(232,237,245,0.82);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+}
+
 /* Pressure gradient legend */
 .pressureLegend {
   position: absolute; bottom: 10px; left: 12px;

@@ -4,13 +4,13 @@ import { api } from '../api'
 
 export function useOptimization() {
   const {
-    jobId, jobStatus, progress, params,
+    jobId, jobStatus, progress, params, networkFile,
     setJobId, setJobStatus, setProgress, setResults, setError, reset,
   } = useStore()
 
   const pollRef = useRef(null)
 
-  // ── Poll for results while job is running ─────────────────────────────────
+  // -- Poll for results while job is running ---------------------------------
   useEffect(() => {
     if (!jobId || jobStatus === 'complete' || jobStatus === 'failed') return
 
@@ -43,32 +43,45 @@ export function useOptimization() {
     return () => clearInterval(pollRef.current)
   }, [jobId, jobStatus])
 
-  // ── Start a new optimization run ──────────────────────────────────────────
+  // -- Start a new optimization run ------------------------------------------
   const startOptimization = async () => {
     reset()
     setJobStatus('running')
     try {
-      const data = await api.startOptimization(params)
+      const data = await api.startOptimization({
+        ...params,
+        network_file: networkFile,
+      })
       setJobId(data.job_id)
     } catch (err) {
       setJobStatus('failed')
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message || 'Could not connect to backend')
     }
   }
 
   return { startOptimization, isRunning: jobStatus === 'running', progress }
 }
 
-// ── Fetch baseline once on mount ──────────────────────────────────────────────
+// -- Fetch baseline once on mount ----------------------------------------------
 export function useBaseline() {
-  const { baseline, setBaseline } = useStore()
+  const { baseline, setBaseline, networkFile, setError } = useStore()
 
   useEffect(() => {
     if (baseline) return
-    api.getBaseline()
-      .then(setBaseline)
-      .catch(err => console.error('Baseline error:', err))
-  }, [])
+    setError(null)
+    api.getBaseline(networkFile)
+      .then(data => {
+        setBaseline(data)
+        setError(null)
+      })
+      .catch(err => {
+        console.error('Baseline error:', err)
+        const message = err.code === 'ECONNABORTED'
+          ? 'Backend request timed out. The selected network may be too large or the server is busy.'
+          : err.response?.data?.detail || err.message || 'Could not connect to backend'
+        setError(message)
+      })
+  }, [baseline, networkFile, setBaseline, setError])
 
   return baseline
 }

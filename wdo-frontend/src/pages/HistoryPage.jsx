@@ -28,7 +28,7 @@ export default function HistoryPage() {
         {loading ? (
           <div className={styles.empty}>Loading history...</div>
         ) : history.length === 0 ? (
-          <div className={styles.empty}>No runs stored yet — run an optimization first</div>
+          <div className={styles.empty}>No runs stored yet - run an optimization first</div>
         ) : (
           <div className={tStyles.tableWrap}>
             <table className={tStyles.table}>

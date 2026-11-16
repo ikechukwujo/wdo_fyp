@@ -1,10 +1,13 @@
 import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
-const http = axios.create({ baseURL: `${API_URL}/api` })
+const http = axios.create({
+  baseURL: `${API_URL}/api`,
+  timeout: 60000,
+})
 
 export const api = {
-  // ── Network ──────────────────────────────────────────────────────────────
+  // -- Network --------------------------------------------------------------
   uploadNetwork: (file) => {
     const form = new FormData()
     form.append('file', file)
@@ -28,7 +31,7 @@ export const api = {
       chromosome
     }).then(r => r.data),
 
-  // ── Optimization ─────────────────────────────────────────────────────────
+  // -- Optimization ---------------------------------------------------------
   startOptimization: (params) =>
     http.post('/optimize', params).then(r => r.data),
 

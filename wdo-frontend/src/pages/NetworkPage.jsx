@@ -8,7 +8,7 @@ export default function NetworkPage() {
         <div>
           <h1 className={styles.title}>Network Visualization</h1>
           <p className={styles.sub}>
-            Pressure heatmap · Flow rates · Before / After optimization
+            Pressure heatmap / Flow rates / Before / After optimization
           </p>
         </div>
       </header>
@@ -22,17 +22,17 @@ export default function NetworkPage() {
         marginTop: '4px'
       }}>
         <InfoCard
-          icon="🔵"
+          icon=""
           title="Node colours = Pressure"
-          body="Red nodes are below the minimum pressure threshold (10m) — these represent deficit zones where water barely reaches consumers. Cyan/green nodes have healthy pressure."
+          body="Red nodes are below the minimum pressure threshold (10m) - these represent deficit zones where water barely reaches consumers. Cyan/green nodes have healthy pressure."
         />
         <InfoCard
-          icon="📏"
+          icon=""
           title="Link width = Flow rate"
           body="Thicker pipes carry more flow. Orange links are pumps, purple links are valves. Hover any link to see its velocity in m/s."
         />
         <InfoCard
-          icon="⚡"
+          icon=""
           title="Before vs After"
           body="Use the Split view to compare baseline (default settings) against the GA-optimised network. After optimization, red nodes should reduce and pressure should be more uniform."
         />

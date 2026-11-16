@@ -31,6 +31,16 @@
 
 .table td { padding: 11px 16px; }
 
+.scheduleTable th,
+.scheduleTable td {
+  white-space: nowrap;
+}
+
+.scheduleTable td {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 .metricName {
   font-family: var(--font-display);
   font-weight: 600;

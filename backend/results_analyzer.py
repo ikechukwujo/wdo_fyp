@@ -20,7 +20,7 @@ class MultiObjectiveResultsAnalyzer:
         self.generation_log = results['generation_log']
         self.knee = results['knee_solution']
 
-    # ─── FIGURE 1: 3D PARETO FRONT ─────────────────────────────────────────────
+    # --- FIGURE 1: 3D PARETO FRONT ---------------------------------------------
 
     def plot_3d_pareto_front(self, save_path: str = None):
         """
@@ -39,7 +39,7 @@ class MultiObjectiveResultsAnalyzer:
                 size=8,
                 color=f1,
                 colorscale='Viridis',
-                colorbar=dict(title='Energy Cost (₦)'),
+                colorbar=dict(title='Energy Cost (NGN)'),
                 opacity=0.8
             ),
             text=[f"Solution {i}" for i in range(len(f1))],
@@ -60,8 +60,8 @@ class MultiObjectiveResultsAnalyzer:
         fig.update_layout(
             title='Pareto Front: 3 Objective Trade-off Space',
             scene=dict(
-                xaxis_title='f1: Energy Cost (₦/day)',
-                yaxis_title='f2: Pressure Variance (m²)',
+                xaxis_title='f1: Energy Cost (NGN/day)',
+                yaxis_title='f2: Pressure Variance (m^2)',
                 zaxis_title='f3: Pressure Deficit (m)'
             ),
             width=900, height=700
@@ -71,15 +71,15 @@ class MultiObjectiveResultsAnalyzer:
             fig.write_html(save_path)
         return fig
 
-    # ─── FIGURE 2: 2D PARETO TRADE-OFF (Energy vs Pressure Variance) ──────────
+    # --- FIGURE 2: 2D PARETO TRADE-OFF (Energy vs Pressure Variance) ----------
 
     def plot_2d_tradeoff(self, obj1='f1', obj2='f2', save_path=None):
         """
         2D Pareto front showing trade-off between any two objectives.
         """
         obj_map = {
-            'f1': ('f1_energy_cost', 'Energy Cost (₦/day)'),
-            'f2': ('f2_pressure_variance', 'Pressure Variance (m²)'),
+            'f1': ('f1_energy_cost', 'Energy Cost (NGN/day)'),
+            'f2': ('f2_pressure_variance', 'Pressure Variance (m^2)'),
             'f3': ('f3_pressure_deficit', 'Pressure Deficit (m)')
         }
 
@@ -128,7 +128,7 @@ class MultiObjectiveResultsAnalyzer:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         return fig
 
-    # ─── FIGURE 3: CONVERGENCE CURVES ─────────────────────────────────────────
+    # --- FIGURE 3: CONVERGENCE CURVES -----------------------------------------
 
     def plot_convergence(self, save_path=None):
         """
@@ -146,13 +146,13 @@ class MultiObjectiveResultsAnalyzer:
         axes[0, 0].plot(generations, min_f1, 'b-', linewidth=2)
         axes[0, 0].set_title('Objective 1: Min Energy Cost per Generation')
         axes[0, 0].set_xlabel('Generation')
-        axes[0, 0].set_ylabel('Energy Cost (₦/day)')
+        axes[0, 0].set_ylabel('Energy Cost (NGN/day)')
         axes[0, 0].grid(True, alpha=0.3)
 
         axes[0, 1].plot(generations, min_f2, 'g-', linewidth=2)
         axes[0, 1].set_title('Objective 2: Min Pressure Variance per Generation')
         axes[0, 1].set_xlabel('Generation')
-        axes[0, 1].set_ylabel('Pressure Variance (m²)')
+        axes[0, 1].set_ylabel('Pressure Variance (m^2)')
         axes[0, 1].grid(True, alpha=0.3)
 
         axes[1, 0].plot(generations, min_f3, 'r-', linewidth=2)
@@ -174,7 +174,7 @@ class MultiObjectiveResultsAnalyzer:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         return fig
 
-    # ─── FIGURE 4: BASELINE vs OPTIMIZED COMPARISON ────────────────────────────
+    # --- FIGURE 4: BASELINE vs OPTIMIZED COMPARISON ----------------------------
 
     def plot_baseline_comparison(self, save_path=None):
         """
@@ -182,11 +182,11 @@ class MultiObjectiveResultsAnalyzer:
         This is the key results figure for Chapter 5.
         """
         metrics = {
-            'Energy Cost (₦/day)': (
+            'Energy Cost (NGN/day)': (
                 self.baseline['energy_cost'],
                 self.knee['f1_energy_cost']
             ),
-            'Pressure Variance (m²)': (
+            'Pressure Variance (m^2)': (
                 self.baseline['pressure_variance'],
                 self.knee['f2_pressure_variance']
             ),
@@ -237,7 +237,7 @@ class MultiObjectiveResultsAnalyzer:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         return fig
 
-    # ─── FIGURE 5: PRESSURE DISTRIBUTION HEATMAP ──────────────────────────────
+    # --- FIGURE 5: PRESSURE DISTRIBUTION HEATMAP ------------------------------
 
     def plot_pressure_distribution(self, save_path=None):
         """
@@ -277,7 +277,7 @@ class MultiObjectiveResultsAnalyzer:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         return fig
 
-    # ─── SUMMARY STATISTICS TABLE ──────────────────────────────────────────────
+    # --- SUMMARY STATISTICS TABLE ----------------------------------------------
 
     def generate_summary_table(self) -> dict:
         """
@@ -295,7 +295,7 @@ class MultiObjectiveResultsAnalyzer:
             'metrics': [
                 {
                     'metric': 'Daily Energy Cost',
-                    'unit': '₦/day',
+                    'unit': 'NGN/day',
                     'baseline': round(baseline['energy_cost'], 2),
                     'optimized': round(knee['f1_energy_cost'], 2),
                     'improvement_pct': round(
@@ -304,7 +304,7 @@ class MultiObjectiveResultsAnalyzer:
                 },
                 {
                     'metric': 'Pressure Variance',
-                    'unit': 'm²',
+                    'unit': 'm^2',
                     'baseline': round(baseline['pressure_variance'], 4),
                     'optimized': round(knee['f2_pressure_variance'], 4),
                     'improvement_pct': round(

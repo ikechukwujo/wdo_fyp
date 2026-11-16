@@ -6,7 +6,7 @@ import json
 from typing import List, Dict, Tuple
 
 
-# ─── DEAP Setup: Define multi-objective minimization problem ───────────────────
+# --- DEAP Setup: Define multi-objective minimization problem -------------------
 # weights=(-1,-1,-1) means minimize all three objectives
 creator.create("FitnessMulti", base.Fitness, weights=(-1.0, -1.0, -1.0))
 creator.create("Individual", list, fitness=creator.FitnessMulti)
@@ -23,8 +23,10 @@ class NSGAII_WaterOptimizer:
 
     def __init__(self, network_file: str, params: dict):
         self.simulator = EPANETSimulator(network_file)
-        self.num_genes = (self.simulator.get_num_pumps() +
-                          self.simulator.get_num_valves())
+        self.schedule_hours = self.simulator.SCHEDULE_HOURS
+        self.num_controls = (self.simulator.get_num_pumps() +
+                             self.simulator.get_num_valves())
+        self.num_genes = self.num_controls * self.schedule_hours
         if self.num_genes == 0:
             print("Warning: Network has no pumps or valves. Optimization may not be meaningful.")
             # Fallback to avoid complete failure or ZeroDivisionError:
@@ -39,7 +41,7 @@ class NSGAII_WaterOptimizer:
         # DEAP toolbox setup
         self.toolbox = self._setup_toolbox()
 
-    # ─── TOOLBOX CONFIGURATION ─────────────────────────────────────────────────
+    # --- TOOLBOX CONFIGURATION -------------------------------------------------
 
     def _setup_toolbox(self) -> base.Toolbox:
         toolbox = base.Toolbox()
@@ -84,7 +86,7 @@ class NSGAII_WaterOptimizer:
 
         return toolbox
 
-    # ─── FITNESS EVALUATION ────────────────────────────────────────────────────
+    # --- FITNESS EVALUATION ----------------------------------------------------
 
     def _evaluate_individual(self, individual: list) -> Tuple[float, float, float]:
         """
@@ -128,17 +130,19 @@ class NSGAII_WaterOptimizer:
     def _calculate_penalty(self, result: dict) -> float:
         """
         Constraint handling via penalty function.
-        Adds penalty for constraint violations — kept intentionally moderate
+        Adds penalty for constraint violations - kept intentionally moderate
         so NSGA-II can still distinguish between "slightly infeasible" and
         "very infeasible" chromosomes (a too-large coefficient collapses all
         fitness values to the same huge number).
         """
         penalty = 0.0
-        penalty_coefficient = 100.0  # was 1000 — reduced to preserve gradient
+        penalty_coefficient = 100.0  # was 1000 - reduced to preserve gradient
 
-        # Penalty for nodes below minimum pressure
+        # Penalty for demand junctions below minimum pressure.
         min_pressure = self.params.get('min_pressure_threshold', 5.0)
         for node_id, pressure in result['pressures'].items():
+            if self.simulator.node_types.get(node_id) != "JUNCTION":
+                continue
             if pressure < min_pressure:
                 penalty += penalty_coefficient * (min_pressure - pressure)
 
@@ -150,7 +154,7 @@ class NSGAII_WaterOptimizer:
 
         return penalty
 
-    # ─── MAIN NSGA-II LOOP ─────────────────────────────────────────────────────
+    # --- MAIN NSGA-II LOOP -----------------------------------------------------
 
     def run(self, progress_callback=None) -> dict:
         """
@@ -176,7 +180,7 @@ class NSGAII_WaterOptimizer:
         # Assign initial crowding distance (NSGA-II requirement)
         population = self.toolbox.select(population, len(population))
 
-        # ── Generation Loop ──────────────────────────────────────────────────
+        # -- Generation Loop --------------------------------------------------
         for generation in range(N_GEN):
             # Generate offspring via tournament selection + crossover + mutation
             offspring = tools.selTournament(population, len(population), tournsize=2)
@@ -221,14 +225,14 @@ class NSGAII_WaterOptimizer:
             if progress_callback:
                 progress_callback(generation + 1, N_GEN)
 
-        # ── Extract Final Pareto Front ────────────────────────────────────────
+        # -- Extract Final Pareto Front ----------------------------------------
         pareto_front = tools.sortNondominated(
             population, len(population), first_front_only=True
         )[0]
 
         return self._package_results(pareto_front, population)
 
-    # ─── RESULT PACKAGING ──────────────────────────────────────────────────────
+    # --- RESULT PACKAGING ------------------------------------------------------
 
     def _package_results(self, pareto_front, final_population) -> dict:
         """
@@ -238,6 +242,9 @@ class NSGAII_WaterOptimizer:
         for ind in pareto_front:
             sim_result = self.simulator.run_simulation(ind)
             penalty = self._calculate_penalty(sim_result)
+            schedule = sim_result.get('operating_schedule') or self.simulator.decode_control_schedule(ind)
+            pump_settings = self._average_pump_settings(schedule)
+            valve_settings = self._average_valve_settings(schedule)
             pareto_solutions.append({
                 'chromosome': list(ind),
                 'f1_energy_cost': sim_result['energy_cost'],
@@ -245,8 +252,12 @@ class NSGAII_WaterOptimizer:
                 'f3_pressure_deficit': sim_result['pressure_deficit'],
                 'penalty': penalty,
                 'pressures': sim_result['pressures'],
-                'pump_settings': list(ind[:self.simulator.get_num_pumps()]),
-                'valve_settings': list(ind[self.simulator.get_num_pumps():])
+                'pump_settings': pump_settings,
+                'valve_settings': valve_settings,
+                'operating_schedule': schedule,
+                'hourly_metrics': sim_result.get('hourly_metrics', []),
+                'demand_zone_summary': sim_result.get('demand_zone_summary', []),
+                'route_ranking': sim_result.get('route_ranking', []),
             })
 
         # Identify knee point solution (best balanced compromise)
@@ -260,6 +271,26 @@ class NSGAII_WaterOptimizer:
             'pareto_front_size': len(pareto_solutions),
             'hypervolume': self._calculate_hypervolume(pareto_solutions)
         }
+
+    def _average_pump_settings(self, schedule: dict) -> List[float]:
+        hours = schedule.get("hours", [])
+        pump_count = self.simulator.get_num_pumps()
+        if not hours or pump_count == 0:
+            return []
+        return [
+            float(np.mean([hour["pumps"][i]["speed"] for hour in hours]))
+            for i in range(pump_count)
+        ]
+
+    def _average_valve_settings(self, schedule: dict) -> List[float]:
+        hours = schedule.get("hours", [])
+        valve_count = self.simulator.get_num_valves()
+        if not hours or valve_count == 0:
+            return []
+        return [
+            float(np.mean([hour["valves"][i]["setting_percent"] / 100 for hour in hours]))
+            for i in range(valve_count)
+        ]
 
     def _find_knee_point(self, pareto_solutions: List[dict]) -> dict:
         """
@@ -297,7 +328,7 @@ class NSGAII_WaterOptimizer:
 
     def _calculate_hypervolume(self, pareto_solutions: List[dict]) -> float:
         """
-        Calculate hypervolume indicator — standard metric for
+        Calculate hypervolume indicator - standard metric for
         multi-objective optimization quality.
         Higher hypervolume = better Pareto front coverage.
         """

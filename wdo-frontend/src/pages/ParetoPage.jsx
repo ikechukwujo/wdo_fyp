@@ -27,16 +27,16 @@ export default function ParetoPage() {
         <div>
           <h1 className={styles.title}>Pareto Front</h1>
           <p className={styles.sub}>
-            Non-dominated solution set · {pareto.length} solutions ·
-            Hypervolume: {results?.hypervolume?.toFixed(4) ?? '—'}
+            Non-dominated solution set / {pareto.length} solutions /
+            Hypervolume: {results?.hypervolume?.toFixed(4) ?? '-'}
           </p>
         </div>
       </header>
 
       <Card>
         <p className={styles.explainer}>
-          Each point is a Pareto-optimal solution — no point dominates another
-          across all three objectives. The <span className={styles.hi}>◆ red diamond</span> is
+          Each point is a Pareto-optimal solution - no point dominates another
+          across all three objectives. The <span className={styles.hi}>* red diamond</span> is
           the recommended <strong>knee point</strong>: the best balanced trade-off
           between energy cost and pressure equity.
         </p>
@@ -48,13 +48,13 @@ export default function ParetoPage() {
               <XAxis
                 dataKey="energy"
                 name="Energy Cost"
-                label={{ value: 'f1 — Energy Cost (₦/day)', position: 'insideBottom', offset: -20, fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+                label={{ value: 'f1 - Energy Cost (NGN/day)', position: 'insideBottom', offset: -20, fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 11 }}
                 tick={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}
               />
               <YAxis
                 dataKey="variance"
                 name="Pressure Variance"
-                label={{ value: 'f2 — Pressure Variance (m²)', angle: -90, position: 'insideLeft', offset: 10, fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+                label={{ value: 'f2 - Pressure Variance (m^2)', angle: -90, position: 'insideLeft', offset: 10, fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 11 }}
                 tick={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}
               />
               <Tooltip content={<ChartTooltip />} cursor={{ strokeDasharray: '4 4', stroke: 'var(--border-hi)' }} />
@@ -86,8 +86,8 @@ export default function ParetoPage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>f1 Energy Cost (₦/day)</th>
-                  <th>f2 Pressure Variance (m²)</th>
+                  <th>f1 Energy Cost (NGN/day)</th>
+                  <th>f2 Pressure Variance (m^2)</th>
                   <th>f3 Pressure Deficit (m)</th>
                   <th>Type</th>
                 </tr>
@@ -102,7 +102,7 @@ export default function ParetoPage() {
                       <td className={styles.mono}>{s.f1_energy_cost?.toFixed(2)}</td>
                       <td className={styles.mono}>{s.f2_pressure_variance?.toFixed(4)}</td>
                       <td className={styles.mono}>{s.f3_pressure_deficit?.toFixed(2)}</td>
-                      <td>{isKnee ? <span className={styles.kneeBadge}>◆ Knee Point</span> : '—'}</td>
+                      <td>{isKnee ? <span className={styles.kneeBadge}>* Knee Point</span> : '-'}</td>
                     </tr>
                   )
                 })}

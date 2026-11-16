@@ -33,7 +33,7 @@ export default function ConvergencePage() {
         <div>
           <h1 className={styles.title}>Convergence Analysis</h1>
           <p className={styles.sub}>
-            {log.length} generations · Downward trend = GA is learning
+            {log.length} generations / Downward trend = GA is learning
           </p>
         </div>
       </header>
