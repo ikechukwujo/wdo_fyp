@@ -10,7 +10,6 @@ env/
 .env
 .matplotlib-cache/
 .npm-cache/
-.tmp_bsc_defence_skill/
 
 # EPANET Diagnostics/Outputs
 *.log
